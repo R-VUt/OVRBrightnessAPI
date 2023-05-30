@@ -1,49 +1,72 @@
-﻿using System;
+﻿using OVRSharp;
+using OVRSharp.Exceptions;
+using System;
 using System.Net;
 using System.Text;
+using System.Threading;
 using Valve.VR;
+using SharpDX.Direct3D11;
+using Device = SharpDX.Direct3D11.Device;
+using SharpDX.DXGI;
 
 namespace OVRBrightnessAPI
 {
     internal class Program
     {
         static float brightness = 0.5f;
-        static ulong overlayHandle = 0;
+        
+        
+        static Application ovrApplication = null;
+        static Overlay overlay = null;
+        static Texture2D texture;
+
+
 
         static void Main(string[] args)
         {
-            CVRSystem system = OpenVR.System;
-
             try
             {
-                EVROverlayError overlayError = OpenVR.Overlay.CreateOverlay("OVRBrightnessAPI", "OVRBrightnessAPI", ref overlayHandle);
-                if (overlayError != EVROverlayError.None)
-                {
-                    Console.WriteLine("Failed to create overlay: " + overlayError.ToString());
-                    return;
-                }
-            }
-            catch(Exception e)
+                ovrApplication = new Application(Application.ApplicationType.Overlay);
+            } catch (OpenVRSystemException<Exception> e)
             {
-                Console.WriteLine("Failed to create overlay: " + e.Message);
-                Console.ReadLine();
-                return;
             }
+            overlay = new Overlay("BrightnessAPI", "BrightnessAPI", false);
 
-            OpenVR.Overlay.SetOverlayTextureColorSpace(overlayHandle, EColorSpace.Gamma);
-            var bound = new VRTextureBounds_t()
-            { uMin = 0, uMax = 1, vMin = 0, vMax = 1 };
-            OpenVR.Overlay.SetOverlayTextureBounds(overlayHandle, ref bound);
+            var overlayBound = new VRTextureBounds_t()
+            {
+                uMin = 0,
+                uMax = 1,
+                vMin = 0,
+                vMax = 1
+            };
+            overlay.Alpha = brightness;
+            overlay.TextureBounds = overlayBound;
 
-            OpenVR.Overlay.ShowOverlay(overlayHandle);
+            var _device = new Device(SharpDX.Direct3D.DriverType.Hardware, DeviceCreationFlags.BgraSupport | DeviceCreationFlags.SingleThreaded);
+            texture = new Texture2D(
+                _device,
+                new Texture2DDescription
+                {
+                    Width = 512,
+                    Height = 512,
+                    MipLevels = 1,
+                    ArraySize = 1,
+                    Format = Format.B8G8R8A8_UNorm,
+                    SampleDescription = new SampleDescription(1, 0),
+                    Usage = ResourceUsage.Dynamic,
+                    BindFlags = BindFlags.ShaderResource,
+                    CpuAccessFlags = CpuAccessFlags.Write
+                });
 
+            var _overlayTexture = new Texture_t
+            {
+                eColorSpace = EColorSpace.Gamma,
+                handle = texture.NativePointer
+            };
+            overlay.SetTexture(_overlayTexture);
+
+            overlay.Show();
             StartHttpServer();
-
-            Console.WriteLine("Press enter to exit...");
-            Console.ReadLine();
-
-            OpenVR.Overlay.DestroyOverlay(overlayHandle);
-            OpenVR.Shutdown();
 
         }
         static void StartHttpServer()
@@ -71,7 +94,7 @@ namespace OVRBrightnessAPI
                         if (float.TryParse(requestBody, out float newBrightness))
                         {
                             brightness = newBrightness;
-                            OpenVR.Overlay.SetOverlayAlpha(overlayHandle, brightness);
+                            overlay.Alpha = brightness;
                             responseString = "Successfully setted";
                         }
                         else
