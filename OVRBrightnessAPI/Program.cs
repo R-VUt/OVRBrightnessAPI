@@ -83,9 +83,17 @@ namespace OVRBrightnessAPI
                         string requestBody = new System.IO.StreamReader(context.Request.InputStream).ReadToEnd();
                         if (float.TryParse(requestBody, out float newBrightness))
                         {
-                            brightness = newBrightness;
-                            overlay.Alpha = brightness;
-                            responseString = "Successfully setted";
+                            if (float.IsNaN(newBrightness) || newBrightness < 0 || newBrightness > 1)
+                            {
+                                responseString = "Invalid value";
+                            }
+                            else
+                            {
+
+                                brightness = 1 - newBrightness;
+                                overlay.Alpha = brightness;
+                                responseString = "Successfully setted";
+                            }
                         }
                         else
                         {
