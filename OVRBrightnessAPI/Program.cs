@@ -3,24 +3,18 @@ using OVRSharp.Exceptions;
 using System;
 using System.Net;
 using System.Text;
-using System.Threading;
 using Valve.VR;
-using SharpDX.Direct3D11;
-using Device = SharpDX.Direct3D11.Device;
-using SharpDX.DXGI;
+using System.IO;
 
 namespace OVRBrightnessAPI
 {
+    
     internal class Program
     {
-        static float brightness = 0.5f;
-        
+        static float brightness = 0.0f;
         
         static Application ovrApplication = null;
         static Overlay overlay = null;
-        static Texture2D texture;
-
-
 
         static void Main(string[] args)
         {
@@ -41,34 +35,30 @@ namespace OVRBrightnessAPI
             };
             overlay.Alpha = brightness;
             overlay.TextureBounds = overlayBound;
+            
 
-            var _device = new Device(SharpDX.Direct3D.DriverType.Hardware, DeviceCreationFlags.BgraSupport | DeviceCreationFlags.SingleThreaded);
-            texture = new Texture2D(
-                _device,
-                new Texture2DDescription
-                {
-                    Width = 512,
-                    Height = 512,
-                    MipLevels = 1,
-                    ArraySize = 1,
-                    Format = Format.B8G8R8A8_UNorm,
-                    SampleDescription = new SampleDescription(1, 0),
-                    Usage = ResourceUsage.Dynamic,
-                    BindFlags = BindFlags.ShaderResource,
-                    CpuAccessFlags = CpuAccessFlags.Write
-                });
+            overlay.TrackedDevice = Overlay.TrackedDeviceRole.Hmd;
 
-            var _overlayTexture = new Texture_t
-            {
-                eColorSpace = EColorSpace.Gamma,
-                handle = texture.NativePointer
-            };
-            overlay.SetTexture(_overlayTexture);
+            HmdMatrix34_t pose;
+            int textureYflip = 1;
+            var wx = -0f;
+            var wy = -0f;
+            var wz = -10f;
 
+            pose.m0 = 100; pose.m1 = 0; pose.m2 = 0; pose.m3 = 2*wx;
+            pose.m4 = 0; pose.m5 = 100*textureYflip; pose.m6 = 0; pose.m7 = 100*wy;
+            pose.m8 = 0; pose.m9 = 0; pose.m10 = 1; pose.m11 = wz;
+            overlay.Transform = pose;
+
+            
+            overlay.SetTextureFromFile(Path.GetFullPath("./black.jpg"));
+            overlay.WidthInMeters = 1f;
             overlay.Show();
             StartHttpServer();
 
         }
+        
+        
         static void StartHttpServer()
         {
             HttpListener listener = new HttpListener();
@@ -111,8 +101,7 @@ namespace OVRBrightnessAPI
                 {
                     responseString = "Invalid url";
                 }
-
-                // 응답 전송
+                
                 byte[] buffer = Encoding.UTF8.GetBytes(responseString);
                 context.Response.ContentLength64 = buffer.Length;
                 context.Response.OutputStream.Write(buffer, 0, buffer.Length);
