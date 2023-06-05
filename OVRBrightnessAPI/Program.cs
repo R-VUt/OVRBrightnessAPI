@@ -23,6 +23,8 @@ namespace OVRBrightnessAPI
                 ovrApplication = new Application(Application.ApplicationType.Overlay);
             } catch (OpenVRSystemException<Exception> e)
             {
+                Console.WriteLine("An error occured while initializing OpenVR: " + e.Message);
+                return;
             }
             overlay = new Overlay("BrightnessAPI", "BrightnessAPI", false);
 
@@ -33,9 +35,9 @@ namespace OVRBrightnessAPI
                 vMin = 0,
                 vMax = 1
             };
-            overlay.Alpha = brightness;
-            overlay.TextureBounds = overlayBound;
-            
+            overlay.Alpha = brightness;             // -> OpenVR.Overlay.SetOverlayAlpha
+            overlay.TextureBounds = overlayBound;   // -> OpenVR.Overlay.SetOverlayTextureBounds
+
 
             overlay.TrackedDevice = Overlay.TrackedDeviceRole.Hmd;
 
@@ -48,11 +50,11 @@ namespace OVRBrightnessAPI
             pose.m0 = 100; pose.m1 = 0; pose.m2 = 0; pose.m3 = 2*wx;
             pose.m4 = 0; pose.m5 = 100*textureYflip; pose.m6 = 0; pose.m7 = 100*wy;
             pose.m8 = 0; pose.m9 = 0; pose.m10 = 1; pose.m11 = wz;
-            overlay.Transform = pose;
+            overlay.Transform = pose; 
 
             
             overlay.SetTextureFromFile(Path.GetFullPath("./black.jpg"));
-            overlay.WidthInMeters = 1f;
+            overlay.WidthInMeters = 1f;     // OpenVR.Overlay.SetOverlayWidthInMeters
             overlay.Show();
             StartHttpServer();
 
