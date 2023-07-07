@@ -21,6 +21,7 @@ namespace WindowsFormsApp1
             
         }
         private string EndPoint = "http://localhost:13902/";
+
         private void trackBar1_Scroll(object sender, EventArgs e)
         {
             string brightness = (trackBar1.Value/(float)100).ToString();
